@@ -5,47 +5,30 @@ from numpy.lib.npyio import save
 from scipy.integrate import ode
 
 from .planetary_data import planetaryData as plDat
+from src.planetary_data import Earth
 
-from .OrbitTools import plot_n_orbits, coes2RvecVvec
-
-
-class OrbitParams:
-    timelength = 0 # time in seconds
-    timeStep   = 0 # time in seconds
-    rVec       = []
-    vVec       = []
-    color      = (1, 1, 1, 1)
-    cb         = plDat.Earth
-    annomoly = 0
-    trueAnnomoly = 0
-    eccentricity = 0
-    inclination = 0
-    argOfPerig = 0
-    raan = 0
-    mu = plDat.Earth.mu
-    degrees = False
+from .OrbitTools import plot_n_orbits
+from src.CoesToState import CoesToStateVectors
+from src.General import OrbitalElements
 
 
 
 
 class OrbitPropogator():
-    def __init__(self, params: OrbitParams, useCoes: bool = False) -> None:
+    def __init__(self, params: OrbitalElements, timeLength: float, timeStep: float, planet: Earth, useCoes: bool = False) -> None:
         super().__init__()
-        self.r0 = params.rVec
-        self.v0 = params.vVec
-        self.timeSpan = params.timelength
-        self.dt = params.timeStep
-        self.body = params.cb
+        self.r0 = params.r
+        self.v0 = params.v
+        self.timeSpan = timeLength
+        self.dt = timeStep
+        self.body = planet
         self.rs = None
         self.vs = None
         self.color = params.color
         self.params = params
 
         if useCoes:
-            self.r0, self.v0 = coes2RvecVvec(params.annomoly, params.eccentricity, params.inclination, \
-                                            params.trueAnnomoly, params.argOfPerig, params.raan, params.degrees, params.mu)
-            print(self.r0)
-            print(self.v0)
+            self.r0, self.v0 = CoesToStateVectors(params, self.body.mu)
         
 
 

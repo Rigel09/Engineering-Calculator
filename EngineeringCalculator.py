@@ -3,10 +3,7 @@ import configparser
 import sys
 import os
 import numpy as np
-from numpy.core.defchararray import array
 import threading
-from numpy.core.fromnumeric import argpartition
-from numpy.lib.function_base import select
 import math
 
 ###### Style Imports #######
@@ -17,16 +14,18 @@ import qtmodern.styles
 ###### Project Imports ########
 from src.MohrCirclePropogator import MohrCirclePropogator as mcp
 from src.MohrCirclePropogator import MohrCircle3DValues as mc3dVals
-from mpl_toolkits.mplot3d import Axes3D
 import pyqtcss
 from Forms.engCalcUI import Ui_MainWindow
 from src.planetary_data import planetaryData as plDat
-from src.OrbitPropagator import OrbitParams, OrbitPropogator as OP
-from src.OrbitTools import coes2RvecVvec, Vector2CoesConverter, CoordinateTransforms
+from src.OrbitPropagator import OrbitPropogator as OP
+from src.VectorCoesConverter import Vector2CoesConverter
+from src.CoordinateTransforms import CoordinateTransforms
+from src.CoesToState import CoesToStateVectors
+from src.General import OrbitalElements
 
 
 ##### QT Imports  ############# 
-from PyQt5 import QtWidgets, uic, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QColorDialog
 import PyQt5
 
@@ -35,7 +34,6 @@ import matplotlib as mpl
 mpl.use('QT5Agg')
 import matplotlib.pyplot as plt
 import pyqtgraph.opengl as gl
-import pyqtgraph as pg
 
 
 
@@ -91,7 +89,7 @@ class Ui(QMainWindow, Ui_MainWindow):
         # uic.loadUi(os.path.join("Forms", "engCalcForm.ui"), self)
         self.show()
         
-
+        self.calculate3DMohrCircle
 
         self.calculateGradeButton.clicked.connect(self.calculateGrade)
         self.clearGradeEdits.clicked.connect(self.clearGradeCalculator)
@@ -123,8 +121,8 @@ class Ui(QMainWindow, Ui_MainWindow):
 
 
         self.initializePlots()
-        self.planetaryBodyComboBox.addItems(plDat.bodyList)
-        self.vecCoesConverterCombobx.addItems(plDat.bodyList)
+        self.planetaryBodyComboBox.addItems(plDat.getAvailableBodies())
+        self.vecCoesConverterCombobx.addItems(plDat.getAvailableBodies())
         frames = CoordinateTransforms.validFrames
         frames.append("Manually Input Matrix Values")
         self.transformMatrixComboBx.addItems(frames)
@@ -245,33 +243,33 @@ class Ui(QMainWindow, Ui_MainWindow):
 
 
     def clearGradeCalculator(self):
-       self.gradeEdit1.clear() 
-       self.gradeEdit2.clear() 
-       self.gradeEdit3.clear() 
-       self.gradeEdit4.clear() 
-       self.gradeEdit5.clear() 
-       self.gradeEdit6.clear() 
-       self.gradeEdit7.clear() 
-       self.gradeEdit8.clear() 
-       self.gradeEdit9.clear() 
-       self.gradeEdit10.clear() 
-       self.gradeEdit11.clear() 
-       self.gradeWeightEdit1.clear()
-       self.gradeWeightEdit2.clear()
-       self.gradeWeightEdit3.clear()
-       self.gradeWeightEdit4.clear()
-       self.gradeWeightEdit5.clear()
-       self.gradeWeightEdit6.clear()
-       self.gradeWeightEdit7.clear()
-       self.gradeWeightEdit8.clear()
-       self.gradeWeightEdit9.clear()
-       self.gradeWeightEdit10.clear()
-       self.gradeWeightEdit11.clear()
-       self.remainAssGradeEdit.clear()
-       self.neededGradeEdit.clear()
-       self.overallGradeLabel.setText("Overall grade achieved with entered grades is: and a total weight of: ")
-       self.neededGradeLabel.setText("Overall grade needed on remaining assignments to get a grade of, , is: ")
-       self.remainingGradeLabel.setText("Overall grade wtih, , on remaining assignments is: ")
+        self.gradeEdit1.clear()
+        self.gradeEdit2.clear() 
+        self.gradeEdit3.clear() 
+        self.gradeEdit4.clear() 
+        self.gradeEdit5.clear() 
+        self.gradeEdit6.clear() 
+        self.gradeEdit7.clear() 
+        self.gradeEdit8.clear() 
+        self.gradeEdit9.clear() 
+        self.gradeEdit10.clear() 
+        self.gradeEdit11.clear() 
+        self.gradeWeightEdit1.clear()
+        self.gradeWeightEdit2.clear()
+        self.gradeWeightEdit3.clear()
+        self.gradeWeightEdit4.clear()
+        self.gradeWeightEdit5.clear()
+        self.gradeWeightEdit6.clear()
+        self.gradeWeightEdit7.clear()
+        self.gradeWeightEdit8.clear()
+        self.gradeWeightEdit9.clear()
+        self.gradeWeightEdit10.clear()
+        self.gradeWeightEdit11.clear()
+        self.remainAssGradeEdit.clear()
+        self.neededGradeEdit.clear()
+        self.overallGradeLabel.setText("Overall grade achieved with entered grades is: and a total weight of: ")
+        self.neededGradeLabel.setText("Overall grade needed on remaining assignments to get a grade of, , is: ")
+        self.remainingGradeLabel.setText("Overall grade wtih, , on remaining assignments is: ")
 
 
     def interpolate(self):
@@ -698,6 +696,7 @@ class Ui(QMainWindow, Ui_MainWindow):
         radius = np.linalg.norm([0, cb.radius, 0])
         md = gl.MeshData.sphere(rows=200, cols=300, radius=radius)
         m1 = gl.GLMeshItem(meshdata=md,smooth=True,color=cb.qtColor,shader="balloon",glOptions="additive")
+        # m1.translate(10000, 5000, 12000)
         self.orbitPlot.plot.addItem(m1)
 
         # Plot the initial point
@@ -732,6 +731,7 @@ class Ui(QMainWindow, Ui_MainWindow):
                 radius = np.linalg.norm([0, params.body.radius, 0])
                 md = gl.MeshData.sphere(rows=200, cols=300, radius=radius)
                 m1 = gl.GLMeshItem(meshdata=md,smooth=True,color=params.body.qtColor,shader="balloon",glOptions="additive")
+                m1.translate(10000, 5000, 12000)
                 self.orbitPlot.plot.addItem(m1)
                 firstPass = False
             
@@ -787,12 +787,7 @@ class Ui(QMainWindow, Ui_MainWindow):
 
     
     def updateCelestialBodyRadius(self):
-        body = self.planetaryBodyComboBox.currentText()
-        cb = plDat.Earth
-
-        if body == "Sun":
-            cb = plDat.Sun
-
+        cb = plDat.getPlanetData(self.planetaryBodyComboBox.currentText())
         self.orbitRadiusLbl.setText(str(cb.radius))
 
 
@@ -822,13 +817,19 @@ class Ui(QMainWindow, Ui_MainWindow):
         if self.argOfPerigEdit.text():
             argPerig = float(self.argOfPerigEdit.text())
 
-        if self.planetaryBodyComboBox.currentText() == "Sun":
-            cb = plDat.Sun
-        
-        else:
-            cb = plDat.Earth
+        cb = plDat.getPlanetData(self.planetaryBodyComboBox.currentText())
 
-        r, v = coes2RvecVvec(annomoly, eccentricity, inclination, trueAnnomoly, argPerig, raan, deg=False, mu=cb.mu)
+        oe = OrbitalElements()
+        oe.trueAnomoly = trueAnnomoly
+        oe.eccentricity = eccentricity
+        oe.inclination = inclination
+        oe.semiMajorAxis = annomoly
+        oe.argOfPerigee = argPerig
+        oe.rightAscension = raan
+
+
+        stateConverter = CoesToStateVectors(oe, mu=cb.mu)
+        r, v = stateConverter.getRandV()
 
         self.orbitInitP1Edit.setText(str(round(r[0], 5)))
         self.orbitInitP2Edit.setText(str(round(r[1], 5)))
@@ -840,12 +841,7 @@ class Ui(QMainWindow, Ui_MainWindow):
 
 
     def vectorCoesConverter(self):
-        cb = plDat.Earth
-
-        if self.vecCoesConverterCombobx.currentText() == "Sun":
-            cb = plDat.Sun
-
-        mu = cb.mu
+        mu = plDat.getPlanetData(self.vecCoesConverterCombobx.currentText()).mu
 
         if self.vecCoesConverterUseCanonicalChckBx.isChecked():
             mu = 1
@@ -873,11 +869,13 @@ class Ui(QMainWindow, Ui_MainWindow):
                 self.trueAnomalyCoesConvertEdit.setText(str(round(converter.getTrueAnomaly(), 5)))
                 self.eccentricityCoesconvertEdit.setText(str(round(converter.getEccentricity(), 5)))
                 self.semiMajorAxisCoesConvertEdit.setText(str(round(converter.getSemiMajorAxis(), 5)))
+                self.semiLatusRectumCoesConverterEdit.setText(str(round(converter.getSemiLatusRectum(), 5)))
         
 
         if self.calculateRVchckbx.isChecked():
             if self.inclinationCoesConvertEdit.text() and self.raanCoesConvertEdit.text() and self.argPerigCoesConvertEdit.text() \
-                and self.trueAnomalyCoesConvertEdit.text() and self.eccentricityCoesconvertEdit.text() and self.semiMajorAxisCoesConvertEdit.text():
+                and self.trueAnomalyCoesConvertEdit.text() and self.eccentricityCoesconvertEdit.text() \
+                and self.semiMajorAxisCoesConvertEdit.text() and self.semiLatusRectumCoesConverterEdit.text():
 
                 semiMajorAxis = float(self.semiMajorAxisCoesConvertEdit.text())
                 inclination = float(self.inclinationCoesConvertEdit.text())
@@ -885,8 +883,20 @@ class Ui(QMainWindow, Ui_MainWindow):
                 argPerig = float(self.argPerigCoesConvertEdit.text())
                 trueAnom = float(self.trueAnomalyCoesConvertEdit.text())
                 eccentricity = float(self.eccentricityCoesconvertEdit.text())
+                latusRectum = float(self.semiLatusRectumCoesConverterEdit.text())
 
-                r, v = coes2RvecVvec(semiMajorAxis, eccentricity, inclination, trueAnom, argPerig, raan, mu=mu)
+                oe = OrbitalElements()
+                oe.trueAnomoly = trueAnom
+                oe.eccentricity = eccentricity
+                oe.inclination = inclination
+                oe.semiMajorAxis = semiMajorAxis
+                oe.argOfPerigee = argPerig
+                oe.rightAscension = raan
+                oe.semiLatusRectum = latusRectum
+
+
+                stateConverter = CoesToStateVectors(oe, mu=mu)
+                r, v = stateConverter.getRandV()
 
                 self.r1VecCoesConverterEdit.setText(str(round(r[0], 5)))
                 self.r2VecCoesConverterEdit.setText(str(round(r[1], 5)))
@@ -894,7 +904,7 @@ class Ui(QMainWindow, Ui_MainWindow):
 
                 self.v1VecCoesConverterEdit.setText(str(round(v[0], 5)))
                 self.v2VecCoesConverterEdit.setText(str(round(v[1], 5)))
-                self.v3VecCoesConverterEdit.setText(str(round(v[0], 5)))
+                self.v3VecCoesConverterEdit.setText(str(round(v[2], 5)))
 
 
     
