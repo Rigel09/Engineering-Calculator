@@ -16,8 +16,8 @@ from src.MohrCirclePropogator import MohrCirclePropogator as mcp
 from src.MohrCirclePropogator import MohrCircle3DValues as mc3dVals
 import pyqtcss
 from Forms.engCalcUI import Ui_MainWindow
-from src.planetary_data import planetaryData as plDat
-from src.OrbitPropagator import OrbitPropogator as OP
+from src.planetary_data import BasePlanet, Earth, planetaryData as plDat
+from src.OrbitPropagator import OrbitPropogator as OP, OrbitParams
 from src.VectorCoesConverter import Vector2CoesConverter
 from src.CoordinateTransforms import CoordinateTransforms
 from src.CoesToState import CoesToStateVectors
@@ -555,10 +555,7 @@ class Ui(QMainWindow, Ui_MainWindow):
 
     def initializeOrbitParams(self):
         body = self.planetaryBodyComboBox.currentText()
-        cb = plDat.Earth
-
-        if body == "Sun":
-            cb = plDat.Sun
+        cb = plDat.getPlanetData(body)
 
         rmag = cb.radius + 1000
         vmag = np.sqrt(cb.mu / rmag)
@@ -602,7 +599,7 @@ class Ui(QMainWindow, Ui_MainWindow):
         if not self.orbitTimeStepEdit.text(): return
         if not self.orbitNameEdit.text(): return
 
-        if self.planetaryBodyComboBox.currentText() not in plDat.bodyList: return
+        if self.planetaryBodyComboBox.currentText() not in plDat.getAvailableBodies(): return
 
         r1 = float(self.orbitInitP1Edit.text())
         r2 = float(self.orbitInitP2Edit.text())
@@ -615,11 +612,10 @@ class Ui(QMainWindow, Ui_MainWindow):
         r0 = [r1, r2, r3]
         v0 = [v1, v2, v3]
 
-        cb = plDat.Earth
+
         body = self.planetaryBodyComboBox.currentText()
 
-        if body == "Sun":
-            cb = plDat.Sun
+        cb = plDat.getPlanetData(body)
         
         timeStep = float(self.orbitTimeStepEdit.text())
         time = float(self.orbitTimeEdit.text()) * 3600
@@ -654,7 +650,7 @@ class Ui(QMainWindow, Ui_MainWindow):
         if not self.orbitTimeEdit.text(): return
         if not self.orbitTimeStepEdit.text(): return
 
-        if self.planetaryBodyComboBox.currentText() not in plDat.bodyList: return
+        if self.planetaryBodyComboBox.currentText() not in plDat.getAvailableBodies(): return
 
 
         r1 = float(self.orbitInitP1Edit.text())
@@ -668,11 +664,10 @@ class Ui(QMainWindow, Ui_MainWindow):
         r0 = [r1, r2, r3]
         v0 = [v1, v2, v3]
 
-        cb = plDat.Earth
+
         body = self.planetaryBodyComboBox.currentText()
 
-        if body == "Sun":
-            cb = plDat.Sun
+        cb = plDat.getPlanetData(body)
         
         timeStep = float(self.orbitTimeStepEdit.text())
         time = float(self.orbitTimeEdit.text()) * 3600
@@ -728,17 +723,16 @@ class Ui(QMainWindow, Ui_MainWindow):
 
             if firstPass:
                 # Create the celestial body
-                radius = np.linalg.norm([0, params.body.radius, 0])
+                radius = np.linalg.norm([0, params.body.radius_AU, 0])
                 md = gl.MeshData.sphere(rows=200, cols=300, radius=radius)
                 m1 = gl.GLMeshItem(meshdata=md,smooth=True,color=params.body.qtColor,shader="balloon",glOptions="additive")
-                m1.translate(10000, 5000, 12000)
                 self.orbitPlot.plot.addItem(m1)
                 firstPass = False
             
             rs = params.getRadiusArray()
 
             # Plot the initial point
-            initialPoint = gl.GLScatterPlotItem(pos=np.array([rs[0,0], rs[0,1], rs[0,2]]), size=np.array([13]), color=(1,0,0,1.5))
+            initialPoint = gl.GLScatterPlotItem(pos=np.array([rs[0,0], rs[0,1], rs[0,2]]), size=np.array([20]), color=params.color)
             self.orbitPlot.plot.addItem(initialPoint)
 
             # Plot the trajectory

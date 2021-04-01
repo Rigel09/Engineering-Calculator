@@ -13,11 +13,12 @@ class Sun(BasePlanet):
     mass = 1.989e30
     mu = 1.32712e11
     radius = 695700.0
+    radius_AU = 4.65e-3
     colormap = "Wistia"
     qtColor = (1, 1, 0, 1)
     DU = 696340     # km
     MU = 1.989e30   # kg
-    TU = 57.13      # Days
+    TU = 58.13      # Days
     
 
 
@@ -49,6 +50,7 @@ class Earth(BasePlanet):
     mass = 5.972e24
     mu = 398600.0
     radius = 6378
+    radius_AU = 4.26e-5
     colormap = "Blues"
     qtColor = (0, 0, 1, 1)
     DU = 6378.1   # km
@@ -74,6 +76,7 @@ class Mars(BasePlanet):
     mass = 0.642e24
     mu = 398600.0
     radius = 3396
+    radius_AU = 2.27e-5
     colormap = "Blues"
     qtColor = (0, 0, 1, 1)
     DU = 6378.1   # km
